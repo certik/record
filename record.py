@@ -64,16 +64,6 @@ def encode(audio, video, output):
     check_call(["mencoder", "-audiofile", audio, "-oac", "lavc", "-ovc",
         "lavc", video, "-o", output])
 
-def wait_for_ctrl_c():
-    """
-    Waits until CTRL-C is pressed.
-    """
-    try:
-        while 1:
-            pass
-    except KeyboardInterrupt:
-        pass
-
 if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("-f", "--file", dest="filename", default="out.avi",
@@ -103,6 +93,6 @@ if __name__ == "__main__":
         a.stop()
     print "saving video"
     v.wait()
-    #sleep(1)
-    #encode(audio_file, video_file, options.filename)
+    print "encoding"
+    encode(audio_file, video_file, options.filename)
     print "output saved to:", options.filename
