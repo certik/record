@@ -43,7 +43,8 @@ class Video(object):
         self._pipe.terminate()
 
     def wait(self):
-        self._pipe.wait()
+        #self._pipe.wait()
+        self._pipe.communicate()
 
     def get_window_id(self):
         p = Popen("xwininfo", stdout=PIPE)
@@ -90,7 +91,13 @@ if __name__ == "__main__":
     a = Audio(audio_file)
     print "press CTRL-C to stop"
     try:
-        wait_for_ctrl_c()
+        try:
+            while 1:
+                sleep(0.1)
+                v._pipe.stdout.flush()
+                v._pipe.stderr.flush()
+        except KeyboardInterrupt:
+            pass
     finally:
         v.stop()
         a.stop()
