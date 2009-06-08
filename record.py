@@ -1,5 +1,21 @@
 #! /usr/bin/env python
 
+"""
+Captures a video of a window plus audio, then encodes this into one media file.
+
+Other tips:
+
+1) extracting audio from avi file:
+
+$ mplayer -ao pcm:fast:file=audio_out.wav -vo null -vc null some_video.ogv
+
+2) taking video from one file and audio from another:
+
+$ mencoder -audiofile audio_out.wav -oac lavc -ovc lavc some_video.ogv \
+        -o out.avi
+
+"""
+
 import sys
 import os
 from time import sleep
