@@ -3,8 +3,9 @@
 import sys
 import os
 from time import sleep
-from subprocess import Popen, PIPE, check_call
+from subprocess import Popen, PIPE, check_call, STDOUT
 from tempfile import mkdtemp
+from select import select
 
 import gst
 
@@ -32,7 +33,7 @@ class Video(object):
             win_id = self.get_window_id()
         self._pipe = Popen(["/usr/bin/recordmydesktop", "--no-sound",
             "-windowid", "%s" % win_id, "-o", "%s" % filename],
-            stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         #p.communicate()
 
     def __del__(self):
@@ -42,9 +43,16 @@ class Video(object):
     def stop(self):
         self._pipe.terminate()
 
+    def flush(self):
+        if select([self._pipe.stdout], [], [], 0)[0]:
+            a = ""
+            while select([self._pipe.stdout], [], [], 0)[0]:
+                a += self._pipe.stdout.read(1)
+
     def wait(self):
-        #self._pipe.wait()
-        self._pipe.communicate()
+        out = self._pipe.communicate()[0]
+        if out.find("Done!!!\nGoodbye!\n") < 0:
+            raise Exception("recordmydesktop failed")
 
     def get_window_id(self):
         p = Popen("xwininfo", stdout=PIPE)
@@ -62,7 +70,7 @@ def encode(audio, video, output):
     Combines the audio and video to a resulting file.
     """
     check_call(["mencoder", "-audiofile", audio, "-oac", "lavc", "-ovc",
-        "lavc", video, "-o", output])
+        "lavc", video, "-o", output], stdin=PIPE, stdout=PIPE, stderr=STDOUT)
 
 if __name__ == "__main__":
     parser = OptionParser()
@@ -79,13 +87,12 @@ if __name__ == "__main__":
     print "select a window to capture"
     v = Video(video_file)
     a = Audio(audio_file)
-    print "press CTRL-C to stop"
+    print "Capturing audio and video. Press CTRL-C to stop."
     try:
         try:
             while 1:
                 sleep(0.1)
-                v._pipe.stdout.flush()
-                v._pipe.stderr.flush()
+                v.flush()
         except KeyboardInterrupt:
             pass
     finally:
