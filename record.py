@@ -36,10 +36,14 @@ class Video(object):
         #p.communicate()
 
     def __del__(self):
-        self._pipe.kill()
+        if self._pipe.poll() is None:
+            self._pipe.kill()
 
     def stop(self):
         self._pipe.terminate()
+
+    def wait(self):
+        self._pipe.wait()
 
     def get_window_id(self):
         p = Popen("xwininfo", stdout=PIPE)
@@ -90,7 +94,8 @@ if __name__ == "__main__":
     finally:
         v.stop()
         a.stop()
-    print "waiting 1s"
-    sleep(1)
-    encode(audio_file, video_file, options.filename)
+    print "saving video"
+    v.wait()
+    #sleep(1)
+    #encode(audio_file, video_file, options.filename)
     print "output saved to:", options.filename
