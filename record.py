@@ -18,6 +18,7 @@ $ mencoder -audiofile audio_out.wav -oac lavc -ovc lavc some_video.ogv \
 
 import sys
 import os
+import re
 from time import sleep
 from subprocess import Popen, PIPE, check_call, STDOUT
 from tempfile import mkdtemp
@@ -47,8 +48,14 @@ class Video(object):
         """
         if win_id is None:
             win_id = self.get_window_id()
+        x, y, w, h = self.get_window_pos(win_id)
         self._pipe = Popen(["/usr/bin/recordmydesktop", "--no-sound",
-            "-windowid", "%s" % win_id, "-o", "%s" % filename],
+            #"-windowid", "%s" % win_id,
+            "-x", str(x),
+            "-y", str(y),
+            "-width", str(w),
+            "-height", str(h),
+            "-o", "%s" % filename],
             stdin=PIPE, stdout=PIPE, stderr=STDOUT)
         #p.communicate()
 
@@ -69,6 +76,31 @@ class Video(object):
         out = self._pipe.communicate()[0]
         if out.find("Done!!!\nGoodbye!\n") < 0:
             raise Exception("recordmydesktop failed")
+
+    def get_window_pos(self, win_id, dX=0, dY=-17, dw=2, dh=16):
+        """
+        Determines the correct window position and dimensions.
+
+        win_id ... windows ID to whose parameters are to be determined
+        dX, dY, dw, dh ... those are corrections that have to be applied to
+                           what is read from xwininfo
+
+        Note: they are not precised anyways, there seems to be some weird
+        rounding to multiplies of 4...
+        """
+        p = Popen(["xwininfo", "-id", win_id], stdout=PIPE)
+        out = p.communicate()[0]
+        if p.returncode != 0:
+            raise Exception("xwininfo failed")
+        X = int(re.search("Absolute upper-left X:.*?(\d+)", out).groups()[0])
+        Y = int(re.search("Absolute upper-left Y:.*?(\d+)", out).groups()[0])
+        width = int(re.search("Width:.*?(\d+)", out).groups()[0])
+        height = int(re.search("Height:.*?(\d+)", out).groups()[0])
+        X += dX
+        Y += dY
+        width += dw
+        height += dh
+        return X, Y, width, height
 
     def get_window_id(self):
         p = Popen("xwininfo", stdout=PIPE)
@@ -92,8 +124,8 @@ if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("-f", "--file", dest="filename", default="out.avi",
             help="save to FILE [default: %default]", metavar="FILE")
-    #parser.add_option("-w", "--window", dest="window", action="store_true"
-    #        help="ask which window to capture", default=True)
+    parser.add_option("-w", "--window", dest="window",
+            help="window id to capture", default=None)
     options, args = parser.parse_args()
 
     tmp_dir = mkdtemp()
@@ -101,7 +133,7 @@ if __name__ == "__main__":
     audio_file = os.path.join(tmp_dir, "audio.flac")
     print "work dir:", tmp_dir
     print "select a window to capture"
-    v = Video(video_file)
+    v = Video(video_file, options.window)
     a = Audio(audio_file)
     print "Capturing audio and video. Press CTRL-C to stop."
     try:
