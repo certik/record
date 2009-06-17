@@ -5,14 +5,18 @@ from PIL import Image
 from cPickle import dump
 
 def wait(fps=2):
+    """
+    Generates consecutive integers with the given "fps".
+
+    It maintains the constant fps.
+    """
     i = 1
     t = clock()
     while 1:
+        free_count = 0
         while clock()-t < float(i)/fps:
-            # sleeping here is too imprecise
-            #sleep(0.01)
-            pass
-        yield i-1
+            free_count += 1
+        yield i-1, free_count
         i += 1
 
 
@@ -30,28 +34,16 @@ f = open("data", "w")
 data = (img_width, img_height, screengrab.get_rowstride(), fps)
 dump(data, f)
 t = clock()
-for i in wait(fps=fps):
+t_start = t
+for i, count in wait(fps=fps):
+    t_new = clock()
     screengrab.get_from_drawable(gtk.gdk.get_default_root_window(),
         gtk.gdk.colormap_get_system(), 0, 0, 0, 0, img_width, img_height)
     img = screengrab.get_pixels()
-    #print len(img)/1024./1024
-    #img = Image.frombuffer("RGB", (img_width, img_height),
-    #        screengrab.get_pixels(), "raw", "RGB",
-    #        screengrab.get_rowstride(), 1)
-    #img.save("screen%04d.ppm" % i)
-    #images.append(img)
-    #dump(img, f)
     dump(len(img), f)
     f.write(img)
-    #f.flush()
     i += 1
-    print i, 1/(clock()-t)
-    t = clock()
-    #print t-t_start
-
-#print i
-#print "fps=", i/10.
-#print "saving"
-#for i, img in enumerate(images):
-#    print i
-#    img.save("screen%04d.png" % i)
+    print "frame: %04d, current fps: %6.3f, free-count: %06d, time: %.3f, " \
+            "lag: %.3f" % (i, 1/(t_new-t), count, t_new-t_start,
+                    t_new-t_start - float(i)/fps)
+    t = t_new
