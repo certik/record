@@ -8,9 +8,14 @@ print img_width, img_height, stride, fps
 i = 0
 while 1:
     try:
-        n = load(f)
+        frame_headers = load(f)
     except EOFError:
         break
+    n, skip = frame_headers
+    for j in range(skip):
+        # ideally this should be interpolated with the next image
+        img.save("screen%04d.png" % i)
+        i += 1
     pixels = f.read(n)
     img = Image.frombuffer("RGB", (img_width, img_height),
             pixels, "raw", "RGB", stride, 1)
