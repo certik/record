@@ -20,11 +20,14 @@ import sys
 import os
 import re
 from time import sleep
+from timeit import default_timer as clock
 from subprocess import Popen, PIPE, check_call, STDOUT
 from tempfile import mkdtemp
 from select import select
+from cPickle import dump
 
 import gst
+import gtk
 
 from optparse import OptionParser
 
@@ -39,7 +42,7 @@ class Audio(object):
 
 class Video(object):
 
-    def __init__(self, filename, win_id=None):
+    def __init__(self, filename, win_id=None, fps=15):
         """
         Starts capturing the video and saves it to a file 'filename'.
 
@@ -49,33 +52,54 @@ class Video(object):
         if win_id is None:
             win_id = self.get_window_id()
         x, y, w, h = self.get_window_pos(win_id)
-        self._pipe = Popen(["/usr/bin/recordmydesktop", "--no-sound",
-            #"-windowid", "%s" % win_id,
-            "-x", str(x),
-            "-y", str(y),
-            "-width", str(w),
-            "-height", str(h),
-            "-o", "%s" % filename],
-            stdin=PIPE, stdout=PIPE, stderr=STDOUT)
-        #p.communicate()
+        self.x = x
+        self.y = y
+        self.width = w
+        self.height = h
+        self.fps = fps
+        self.screengrab = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, w, h)
+        self._datafile = open("data", "w")
+        headers = (w, h, self.screengrab.get_rowstride(), fps)
+        dump(headers, self._datafile)
 
-    def __del__(self):
-        if self._pipe.poll() is None:
-            self._pipe.kill()
+    def wait(self, fps=2):
+        """
+        Generates consecutive integers with the given "fps".
 
-    def stop(self):
-        self._pipe.terminate()
+        It maintains the constant fps, and if necessary, it skips frames (in this
+        case the "skip" variable returns the number of skipped frames).
+        """
+        i = 1
+        t = clock()
+        while 1:
+            free_count = 0
+            skip = 0
+            while free_count == 0:
+                while clock()-t < float(i)/fps:
+                    free_count += 1
+                if free_count == 0:
+                    i += 1
+                    skip += 1
+            yield i-1, skip
+            i += 1
 
-    def flush(self):
-        if select([self._pipe.stdout], [], [], 0)[0]:
-            a = ""
-            while select([self._pipe.stdout], [], [], 0)[0]:
-                a += self._pipe.stdout.read(1)
-
-    def wait(self):
-        out = self._pipe.communicate()[0]
-        if out.find("Done!!!\nGoodbye!\n") < 0:
-            raise Exception("recordmydesktop failed")
+    def start(self):
+        t = clock()
+        t_start = t
+        for i, skip in self.wait(fps=self.fps):
+            t_new = clock()
+            self.screengrab.get_from_drawable(gtk.gdk.get_default_root_window(),
+                    gtk.gdk.colormap_get_system(),
+                    self.x, self.y, 0, 0, self.width, self.height)
+            img = self.screengrab.get_pixels()
+            frame_header = (len(img), skip)
+            dump(frame_header, self._datafile)
+            self._datafile.write(img)
+            i += 1
+            print "time: %.3f, frame: %04d, current fps: %6.3f, skip: %d, " \
+                    "lag: %.6f" % ( t_new-t_start, i, 1/(t_new-t), skip,
+                            t_new-t_start - float(i)/self.fps)
+            t = t_new
 
     def get_window_pos(self, win_id, dX=0, dY=-17, dw=2, dh=16):
         """
@@ -138,16 +162,12 @@ if __name__ == "__main__":
     print "Capturing audio and video. Press CTRL-C to stop."
     try:
         try:
-            while 1:
-                sleep(0.1)
-                v.flush()
+            v.start()
         except KeyboardInterrupt:
             pass
     finally:
-        v.stop()
         a.stop()
-    print "saving video"
-    v.wait()
+    print "stopped."
     print "done, see the work dir:", tmp_dir
     #encode(audio_file, video_file, options.filename)
     #print "output saved to:", options.filename
