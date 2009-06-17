@@ -26,10 +26,10 @@ screengrab = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8,
     img_width, img_height)
 
 
-f = open("data", "w")
-data = (img_width, img_height, screengrab.get_rowstride())
-dump(data, f)
 fps = 15
+f = open("data", "w")
+data = (img_width, img_height, screengrab.get_rowstride(), fps)
+dump(data, f)
 t = clock()
 for i in wait(fps=fps):
     screengrab.get_from_drawable(gtk.gdk.get_default_root_window(),
