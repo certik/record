@@ -171,13 +171,6 @@ class Video(object):
             print i
             i += 1
         print "images saved to: %s" % self.tmpdir
-        print "encode by either of the command below:"
-        print "-"*80
-        print "mencoder mf://%s/*.png -mf fps=%d -ovc lavc -lavcopts " \
-                "vcodec=mpeg4:vbitrate=800 -o v.avi" % (self.tmpdir, fps)
-        print "ffmpeg2theora -F %d -v 10 %s/screen%%04d.png -o v.ogv" % \
-                (fps, self.tmpdir)
-        print "-"*80
 
 
 def encode(audio, video, output):
@@ -215,4 +208,17 @@ if __name__ == "__main__":
     print "stopped."
     print "converting to png images"
     v.convert()
-    print "done."
+    print "To encode using mencoder:"
+    print "-"*80
+    print "mencoder mf://%s/*.png -mf fps=%d -audiofile %s -oac lavc " \
+            "-ovc lavc -lavcopts vcodec=mpeg4:vbitrate=800 -o v.avi" % \
+            (tmp_dir, v.fps, audio_file)
+    print "-"*80
+    print
+    print "To encode using theora:"
+    print "-"*80
+    print "ffmpeg2theora -F %d -v 10 %s/screen%%04d.png -o tmp.ogv" % \
+            (v.fps, tmp_dir)
+    print "oggenc %s" % audio_file
+    print "oggz-merge -o v.ogv tmp.ogv %sogg" % audio_file[:-4]
+    print "-"*80
