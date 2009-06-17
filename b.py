@@ -8,15 +8,21 @@ def wait(fps=2):
     """
     Generates consecutive integers with the given "fps".
 
-    It maintains the constant fps.
+    It maintains the constant fps, and if necessary, it skips frames (in this
+    case the "skip" variable returns the number of skipped frames).
     """
     i = 1
     t = clock()
     while 1:
         free_count = 0
-        while clock()-t < float(i)/fps:
-            free_count += 1
-        yield i-1, free_count
+        skip = 0
+        while free_count == 0:
+            while clock()-t < float(i)/fps:
+                free_count += 1
+            if free_count == 0:
+                i += 1
+                skip += 1
+        yield i-1, skip
         i += 1
 
 
@@ -31,19 +37,20 @@ screengrab = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8,
 
 fps = 15
 f = open("data", "w")
-data = (img_width, img_height, screengrab.get_rowstride(), fps)
-dump(data, f)
+headers = (img_width, img_height, screengrab.get_rowstride(), fps)
+dump(headers, f)
 t = clock()
 t_start = t
-for i, count in wait(fps=fps):
+for i, skip in wait(fps=fps):
     t_new = clock()
     screengrab.get_from_drawable(gtk.gdk.get_default_root_window(),
         gtk.gdk.colormap_get_system(), 0, 0, 0, 0, img_width, img_height)
     img = screengrab.get_pixels()
-    dump(len(img), f)
+    frame_header = (len(img), skip)
+    dump(frame_header, f)
     f.write(img)
     i += 1
-    print "frame: %04d, current fps: %6.3f, free-count: %06d, time: %.3f, " \
-            "lag: %.3f" % (i, 1/(t_new-t), count, t_new-t_start,
+    print "time: %.3f, frame: %04d, current fps: %6.3f, skip: %d, " \
+            "lag: %.6f" % ( t_new-t_start, i, 1/(t_new-t), skip,
                     t_new-t_start - float(i)/fps)
     t = t_new
