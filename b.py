@@ -5,15 +5,14 @@ from PIL import Image
 from cPickle import dump
 
 def wait(fps=2):
-    i = 0
+    i = 1
     t = clock()
     while 1:
-        while clock()-t < 1./fps:
+        while clock()-t < float(i)/fps:
             # sleeping here is too imprecise
-            # sleep(0.001)
+            #sleep(0.01)
             pass
-        t = clock()
-        yield i
+        yield i-1
         i += 1
 
 
