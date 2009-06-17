@@ -24,12 +24,13 @@ from timeit import default_timer as clock
 from subprocess import Popen, PIPE, check_call, STDOUT
 from tempfile import mkdtemp
 from select import select
-from cPickle import dump
+from cPickle import dump, load
+from optparse import OptionParser
 
 import gst
 import gtk
+from PIL import Image
 
-from optparse import OptionParser
 
 class Audio(object):
 
@@ -42,7 +43,7 @@ class Audio(object):
 
 class Video(object):
 
-    def __init__(self, filename, win_id=None, fps=15):
+    def __init__(self, tmpdir, win_id=None, fps=15):
         """
         Starts capturing the video and saves it to a file 'filename'.
 
@@ -55,8 +56,9 @@ class Video(object):
         self.width = w
         self.height = h
         self.fps = fps
+        self.tmpdir = tmpdir
         self.screengrab = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, w, h)
-        self._datafile = open("data", "w")
+        self._datafile = open(tmpdir+"/data", "w")
         headers = (w, h, self.screengrab.get_rowstride(), fps)
         dump(headers, self._datafile)
 
@@ -145,6 +147,36 @@ class Video(object):
         id = out[i1: i2]
         return id
 
+    def convert(self):
+        self._datafile.close()
+        f = open(self.tmpdir+"/data")
+        data = load(f)
+        img_width, img_height, stride, fps = data
+        print img_width, img_height, stride, fps
+        i = 0
+        while 1:
+            try:
+                frame_headers = load(f)
+            except EOFError:
+                break
+            n, skip = frame_headers
+            for j in range(skip):
+                # ideally this should be interpolated with the next image
+                img.save(self.tmpdir + "/screen%04d.png" % i)
+                i += 1
+            pixels = f.read(n)
+            img = Image.frombuffer("RGB", (img_width, img_height),
+                    pixels, "raw", "RGB", stride, 1)
+            img.save(self.tmpdir + "/screen%04d.png" % i)
+            print i
+            i += 1
+        print "images saved to: %s" % self.tmpdir
+        print "encode by:"
+        print "mencoder mf://*.png -mf fps=%d -ovc lavc -lavcopts vcodec=mpeg4:vbitrate=800 -o v.avi" % fps
+        print "or by:"
+        print "ffmpeg2theora -F %d -v 10 screen%%04d.png -o v.ogv" % fps
+
+
 def encode(audio, video, output):
     """
     Combines the audio and video to a resulting file.
@@ -167,7 +199,7 @@ if __name__ == "__main__":
     print "select a window to capture (1s sleep)"
     sleep(1)
     print "active window selected"
-    v = Video(video_file, options.window)
+    v = Video(tmp_dir, options.window)
     a = Audio(audio_file)
     print "Capturing audio and video. Press CTRL-C to stop."
     try:
@@ -178,6 +210,6 @@ if __name__ == "__main__":
     finally:
         a.stop()
     print "stopped."
+    print "converting to png images"
+    v.convert()
     print "done, see the work dir:", tmp_dir
-    #encode(audio_file, video_file, options.filename)
-    #print "output saved to:", options.filename
