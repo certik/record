@@ -148,6 +148,6 @@ if __name__ == "__main__":
         a.stop()
     print "saving video"
     v.wait()
-    print "encoding"
-    encode(audio_file, video_file, options.filename)
-    print "output saved to:", options.filename
+    print "done, see the work dir:", tmp_dir
+    #encode(audio_file, video_file, options.filename)
+    #print "output saved to:", options.filename
