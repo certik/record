@@ -49,9 +49,7 @@ class Video(object):
         win_id ... the window id to capture, if None, it automatically runs
                 xwininfo and parses the output to capture the windows id
         """
-        if win_id is None:
-            win_id = self.get_window_id()
-        x, y, w, h = self.get_window_pos(win_id)
+        x, y, w, h = self.get_active_window_pos()
         self.x = x
         self.y = y
         self.width = w
@@ -126,6 +124,16 @@ class Video(object):
         height += dh
         return X, Y, width, height
 
+    def get_active_window_pos(self):
+        root = gtk.gdk.screen_get_default()
+        win = root.get_active_window()
+        winw, winh = win.get_geometry()[2:4]
+        _or, _ror = win.get_origin(), win.get_root_origin()
+        border, titlebar = _or[0] - _ror[0], _or[1] - _ror[1]
+        w, h = winw + (border*2), winh + (titlebar+border)
+        x, y = win.get_root_origin()
+        return x, y, w, h
+
     def get_window_id(self):
         p = Popen("xwininfo", stdout=PIPE)
         out = p.communicate()[0]
@@ -156,7 +164,9 @@ if __name__ == "__main__":
     video_file = os.path.join(tmp_dir, "video.ogv")
     audio_file = os.path.join(tmp_dir, "audio.flac")
     print "work dir:", tmp_dir
-    print "select a window to capture"
+    print "select a window to capture (1s sleep)"
+    sleep(1)
+    print "active window selected"
     v = Video(video_file, options.window)
     a = Audio(audio_file)
     print "Capturing audio and video. Press CTRL-C to stop."
