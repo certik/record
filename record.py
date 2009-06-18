@@ -26,20 +26,24 @@ from tempfile import mkdtemp
 from select import select
 from cPickle import dump, load
 from optparse import OptionParser
+from threading import Thread
 
-import gst
 import gtk
 from PIL import Image
 
+from audio import capture, capture_stop
 
-class Audio(object):
+class Audio(Thread):
 
     def __init__(self, filename):
-        self._pipe = gst.parse_launch("""alsasrc ! audioconvert ! flacenc !  filesink location=%s""" % filename)
-        self._pipe.set_state(gst.STATE_PLAYING)
+        Thread.__init__(self)
+        self._filename = filename
+
+    def run(self):
+        capture(self._filename)
 
     def stop(self):
-        self._pipe.set_state(gst.STATE_NULL)
+        capture_stop()
 
 class Video(object):
 
@@ -190,7 +194,7 @@ if __name__ == "__main__":
 
     tmp_dir = mkdtemp()
     video_file = os.path.join(tmp_dir, "video.ogv")
-    audio_file = os.path.join(tmp_dir, "audio.flac")
+    audio_file = os.path.join(tmp_dir, "audio.wav")
     print "work dir:", tmp_dir
     print "select a window to capture (1s sleep)"
     sleep(1)
@@ -200,6 +204,7 @@ if __name__ == "__main__":
     print "Capturing audio and video. Press CTRL-C to stop."
     try:
         try:
+            a.start()
             v.start()
         except KeyboardInterrupt:
             pass

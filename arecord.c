@@ -288,9 +288,9 @@ int run(char *filename)
 	readn_func = snd_pcm_readn;
 
 
-	signal(SIGINT, signal_handler);
-	signal(SIGTERM, signal_handler);
-	signal(SIGABRT, signal_handler);
+	//signal(SIGINT, signal_handler);
+	//signal(SIGTERM, signal_handler);
+	//signal(SIGABRT, signal_handler);
     capture(filename);
 
     if (fmt_rec_table[file_type].end) {
@@ -969,7 +969,7 @@ static void capture(char *orig_name)
 	else
 		count -= count % 2;
 
-    printf("Recording to: %s\n", name);
+    printf("arecord: Recording audio to: %s\n", name);
 	/* setup sound hardware */
 	set_params();
 
@@ -1038,4 +1038,5 @@ static void capture(char *orig_name)
 		 */
 	} while ( ((file_type == FORMAT_RAW && !timelimit) || count > 0) &&
         capture_stop == 0);
+    printf("arecord: Stopping capturing audio.\n");
 }
