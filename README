@@ -1,6 +1,7 @@
 Install the following packages in Debian/Ubuntu:
 
-sudo apt-get install python-gtk2 python-gst0.10 gstreamer0.10-plugins-base-apps gstreamer0.10-plugins-good
+sudo apt-get install python-gtk2 libasound2-dev
 
+and run it:
 
-./arecord -d 10 -f cd -t wav foobar.wav
+./record.py
