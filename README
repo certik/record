@@ -1,3 +1,30 @@
+Record
+------
+
+The record.py script uses gtk's "get_from_drawable()" function to take
+screenshots and modified alsa's arecord to record the sound.
+
+More details how it works:
+
+The arecord and aplay alsa utilities are actually one and the same program, so
+it was stripped down, all signals removed, all playback removed, all header
+files merged into it, then a "capture_stop" global variable was added, which if
+set to 1, the main audio capture loop will end. Then it is called from cython
+using nogil in it's own thread and when the user wants to end it, the
+"capture_stop" is set to 1. The main python thread takes screenshots in
+periodic intervals (15 fps by default) and if it's late, it skips the frame, so
+that the next one is on time. All screenshots are saved to the "data" file in
+the temporary directory, which is later read and converted to a set of png
+images. The audio is saved to a wav file.
+
+It is then your job to create a video from it (and to convert sound to any
+format you like, like ogg vorbis), it tells you some suggestions (see below).
+Also the amplifier.py script is provided to amplify volume of the wav file in
+case it is too quiet.
+
+Usage
+-----
+
 Install the following packages in Debian/Ubuntu:
 
 sudo apt-get install python-gtk2 libasound2-dev
