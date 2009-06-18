@@ -1,3 +1,8 @@
+/*
+   This file was taken from alsa-utils aplay.c and stripped down, see README
+   for more details. This file is GPL, see the license information in
+   alsa-utils for more info.
+*/
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <malloc.h>
