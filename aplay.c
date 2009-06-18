@@ -159,7 +159,7 @@ enum {
 	OPT_TEST_POSITION
 };
 
-int main(int argc, char *argv[])
+int main()
 {
 	char *pcm_name = "default";
 	int tmp, err;
@@ -170,7 +170,6 @@ int main(int argc, char *argv[])
 	err = snd_output_stdio_attach(&log, stderr, 0);
 	assert(err >= 0);
 
-	command = argv[0];
 	file_type = FORMAT_DEFAULT;
     stream = SND_PCM_STREAM_CAPTURE;
     file_type = FORMAT_WAVE;
