@@ -91,8 +91,6 @@ static int vocmajor, vocminor;
 
 static void playback(char *filename);
 static void capture(char *filename);
-static void playbackv(char **filenames, unsigned int count);
-static void capturev(char **filenames, unsigned int count);
 
 static void begin_voc(int fd, size_t count);
 static void end_voc(int fd);
@@ -1025,20 +1023,4 @@ static void capture(char *orig_name)
 		 * requested counts of data are recorded
 		 */
 	} while ((file_type == FORMAT_RAW && !timelimit) || count > 0);
-}
-
-void playbackv_go(int* fds, unsigned int channels, size_t loaded, off64_t count, int rtype, char **names)
-{
-}
-
-void capturev_go(int* fds, unsigned int channels, off64_t count, int rtype, char **names)
-{
-}
-
-static void playbackv(char **names, unsigned int count)
-{
-}
-
-static void capturev(char **names, unsigned int count)
-{
 }
