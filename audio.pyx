@@ -1,5 +1,5 @@
-cdef extern from "arecord.h":
-    int run(char *filename)
+cdef extern int run(char *filename) nogil
 
 def capture(filename):
-    run(filename)
+    with nogil:
+        run(filename)
