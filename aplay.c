@@ -46,7 +46,23 @@
 #include <sys/time.h>
 #include <sys/signal.h>
 #include <asm/byteorder.h>
-#include "aconfig.h"
+
+#define DATADIR "/usr/share/alsa"
+#define ENABLE_NLS 1
+#define HAVE_DCGETTEXT 1
+#define HAVE_GETTEXT 1
+#define HAVE_LIBASOUND 1
+#define PACKAGE "alsa-utils"
+#define PACKAGE_BUGREPORT ""
+#define PACKAGE_NAME ""
+#define PACKAGE_STRING ""
+#define PACKAGE_TARNAME ""
+#define PACKAGE_VERSION ""
+#define SOUNDSDIR "/usr/share/sounds/alsa"
+#define STDC_HEADERS 1
+#define TIME_WITH_SYS_TIME 1
+#define VERSION "1.0.18"
+
 #include "formats.h"
 #include "version.h"
 
