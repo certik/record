@@ -218,44 +218,8 @@ enum {
 
 int main(int argc, char *argv[])
 {
-	int option_index;
-	char *short_options = "hnlLD:qt:c:f:r:d:MNF:A:R:T:B:vV:IPC";
-	static struct option long_options[] = {
-		{"help", 0, 0, 'h'},
-		{"version", 0, 0, OPT_VERSION},
-		{"list-devnames", 0, 0, 'n'},
-		{"list-devices", 0, 0, 'l'},
-		{"list-pcms", 0, 0, 'L'},
-		{"device", 1, 0, 'D'},
-		{"quiet", 0, 0, 'q'},
-		{"file-type", 1, 0, 't'},
-		{"channels", 1, 0, 'c'},
-		{"format", 1, 0, 'f'},
-		{"rate", 1, 0, 'r'},
-		{"duration", 1, 0 ,'d'},
-		{"mmap", 0, 0, 'M'},
-		{"nonblock", 0, 0, 'N'},
-		{"period-time", 1, 0, 'F'},
-		{"period-size", 1, 0, OPT_PERIOD_SIZE},
-		{"avail-min", 1, 0, 'A'},
-		{"start-delay", 1, 0, 'R'},
-		{"stop-delay", 1, 0, 'T'},
-		{"buffer-time", 1, 0, 'B'},
-		{"buffer-size", 1, 0, OPT_BUFFER_SIZE},
-		{"verbose", 0, 0, 'v'},
-		{"vumeter", 1, 0, 'V'},
-		{"separate-channels", 0, 0, 'I'},
-		{"playback", 0, 0, 'P'},
-		{"capture", 0, 0, 'C'},
-		{"disable-resample", 0, 0, OPT_DISABLE_RESAMPLE},
-		{"disable-channels", 0, 0, OPT_DISABLE_CHANNELS},
-		{"disable-format", 0, 0, OPT_DISABLE_FORMAT},
-		{"disable-softvol", 0, 0, OPT_DISABLE_SOFTVOL},
-		{"test-position", 0, 0, OPT_TEST_POSITION},
-		{0, 0, 0, 0}
-	};
 	char *pcm_name = "default";
-	int tmp, err, c;
+	int tmp, err;
 	snd_pcm_info_t *info;
 
 	snd_pcm_info_alloca(&info);
