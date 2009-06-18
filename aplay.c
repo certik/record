@@ -128,55 +128,6 @@ struct fmt_capture {
 } while (0)
 #endif
 
-static void usage(char *command)
-{
-	snd_pcm_format_t k;
-	printf(
-_("Usage: %s [OPTION]... [FILE]...\n"
-"\n"
-"-h, --help              help\n"
-"    --version           print current version\n"
-"-l, --list-devices      list all soundcards and digital audio devices\n"
-"-L, --list-pcms         list device names\n"
-"-D, --device=NAME       select PCM by name\n"
-"-q, --quiet             quiet mode\n"
-"-t, --file-type TYPE    file type (voc, wav, raw or au)\n"
-"-c, --channels=#        channels\n"
-"-f, --format=FORMAT     sample format (case insensitive)\n"
-"-r, --rate=#            sample rate\n"
-"-d, --duration=#        interrupt after # seconds\n"
-"-M, --mmap              mmap stream\n"
-"-N, --nonblock          nonblocking mode\n"
-"-F, --period-time=#     distance between interrupts is # microseconds\n"
-"-B, --buffer-time=#     buffer duration is # microseconds\n"
-"    --period-size=#     distance between interrupts is # frames\n"
-"    --buffer-size=#     buffer duration is # frames\n"
-"-A, --avail-min=#       min available space for wakeup is # microseconds\n"
-"-R, --start-delay=#     delay for automatic PCM start is # microseconds \n"
-"                        (relative to buffer size if <= 0)\n"
-"-T, --stop-delay=#      delay for automatic PCM stop is # microseconds from xrun\n"
-"-v, --verbose           show PCM structure and setup (accumulative)\n"
-"-V, --vumeter=TYPE      enable VU meter (TYPE: mono or stereo)\n"
-"-I, --separate-channels one file for each channel\n"
-"    --disable-resample  disable automatic rate resample\n"
-"    --disable-channels  disable automatic channel conversions\n"
-"    --disable-format    disable automatic format conversions\n"
-"    --disable-softvol   disable software volume control (softvol)\n"
-"    --test-position     test ring buffer position\n")
-		, command);
-	printf(_("Recognized sample formats are:"));
-	for (k = 0; k < SND_PCM_FORMAT_LAST; ++k) {
-		const char *s = snd_pcm_format_name(k);
-		if (s)
-			printf(" %s", s);
-	}
-	printf(_("\nSome of these may not be available on selected hardware\n"));
-	printf(_("The availabled format shortcuts are:\n"));
-	printf(_("-f cd (16 bit little endian, 44100, stereo)\n"));
-	printf(_("-f cdr (16 bit big endian, 44100, stereo)\n"));
-	printf(_("-f dat (16 bit little endian, 48000, stereo)\n"));
-}
-
 static void version(void)
 {
 }
