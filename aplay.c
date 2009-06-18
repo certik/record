@@ -266,18 +266,10 @@ int main(int argc, char *argv[])
 
 	command = argv[0];
 	file_type = FORMAT_DEFAULT;
-	if (strstr(argv[0], "arecord")) {
-		stream = SND_PCM_STREAM_CAPTURE;
-		file_type = FORMAT_WAVE;
-		command = "arecord";
-		start_delay = 1;
-	} else if (strstr(argv[0], "aplay")) {
-		stream = SND_PCM_STREAM_PLAYBACK;
-		command = "aplay";
-	} else {
-		error(_("command should be named either arecord or aplay"));
-		return 1;
-	}
+    stream = SND_PCM_STREAM_CAPTURE;
+    file_type = FORMAT_WAVE;
+    command = "arecord";
+    start_delay = 1;
 
 	chunk_size = -1;
 	rhwparams.format = DEFAULT_FORMAT;
