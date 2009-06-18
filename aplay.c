@@ -681,68 +681,6 @@ int main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 }
 
-/*
- * Safe read (for pipes)
- */
- 
-ssize_t safe_read(int fd, void *buf, size_t count)
-{
-	ssize_t result = 0, res;
-
-	while (count > 0) {
-		if ((res = read(fd, buf, count)) == 0)
-			break;
-		if (res < 0)
-			return result > 0 ? result : res;
-		count -= res;
-		result += res;
-		buf = (char *)buf + res;
-	}
-	return result;
-}
-
-/*
- * Test, if it is a .VOC file and return >=0 if ok (this is the length of rest)
- *                                       < 0 if not 
- */
-static int test_vocfile(void *buffer)
-{
-	VocHeader *vp = buffer;
-
-	if (!memcmp(vp->magic, VOC_MAGIC_STRING, 20)) {
-		vocminor = LE_SHORT(vp->version) & 0xFF;
-		vocmajor = LE_SHORT(vp->version) / 256;
-		if (LE_SHORT(vp->version) != (0x1233 - LE_SHORT(vp->coded_ver)))
-			return -2;	/* coded version mismatch */
-		return LE_SHORT(vp->headerlen) - sizeof(VocHeader);	/* 0 mostly */
-	}
-	return -1;		/* magic string fail */
-}
-
-/*
- * helper for test_wavefile
- */
-
-size_t test_wavefile_read(int fd, u_char *buffer, size_t *size, size_t reqsize, int line)
-{
-	if (*size >= reqsize)
-		return *size;
-	if ((size_t)safe_read(fd, buffer + *size, reqsize - *size) != reqsize - *size) {
-		error(_("read error (called from line %i)"), line);
-		exit(EXIT_FAILURE);
-	}
-	return *size = reqsize;
-}
-
-#define check_wavefile_space(buffer, len, blimit) \
-	if (len > blimit) { \
-		blimit = len; \
-		if ((buffer = realloc(buffer, blimit)) == NULL) { \
-			error(_("not enough memory"));		  \
-			exit(EXIT_FAILURE); \
-		} \
-	}
-
 static void set_params(void)
 {
 	snd_pcm_hw_params_t *params;
