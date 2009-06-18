@@ -276,152 +276,13 @@ int main(int argc, char *argv[])
 	rhwparams.rate = DEFAULT_SPEED;
 	rhwparams.channels = 1;
 
-	while ((c = getopt_long(argc, argv, short_options, long_options, &option_index)) != -1) {
-		switch (c) {
-		case 'h':
-			usage(command);
-			return 0;
-		case OPT_VERSION:
-			version();
-			return 0;
-		case 'l':
-			break;
-		case 'L':
-			break;
-		case 'D':
-			pcm_name = optarg;
-			break;
-		case 'q':
-			quiet_mode = 1;
-			break;
-		case 't':
-			if (strcasecmp(optarg, "raw") == 0)
-				file_type = FORMAT_RAW;
-			else if (strcasecmp(optarg, "voc") == 0)
-				file_type = FORMAT_VOC;
-			else if (strcasecmp(optarg, "wav") == 0)
-				file_type = FORMAT_WAVE;
-			else if (strcasecmp(optarg, "au") == 0 || strcasecmp(optarg, "sparc") == 0)
-				file_type = FORMAT_AU;
-			else {
-				error(_("unrecognized file format %s"), optarg);
-				return 1;
-			}
-			break;
-		case 'c':
-			rhwparams.channels = strtol(optarg, NULL, 0);
-			if (rhwparams.channels < 1 || rhwparams.channels > 32) {
-				error(_("value %i for channels is invalid"), rhwparams.channels);
-				return 1;
-			}
-			break;
-		case 'f':
-			if (strcasecmp(optarg, "cd") == 0 || strcasecmp(optarg, "cdr") == 0) {
-				if (strcasecmp(optarg, "cdr") == 0)
-					rhwparams.format = SND_PCM_FORMAT_S16_BE;
-				else
-					rhwparams.format = file_type == FORMAT_AU ? SND_PCM_FORMAT_S16_BE : SND_PCM_FORMAT_S16_LE;
-				rhwparams.rate = 44100;
-				rhwparams.channels = 2;
-			} else if (strcasecmp(optarg, "dat") == 0) {
-				rhwparams.format = file_type == FORMAT_AU ? SND_PCM_FORMAT_S16_BE : SND_PCM_FORMAT_S16_LE;
-				rhwparams.rate = 48000;
-				rhwparams.channels = 2;
-			} else {
-				rhwparams.format = snd_pcm_format_value(optarg);
-				if (rhwparams.format == SND_PCM_FORMAT_UNKNOWN) {
-					error(_("wrong extended format '%s'"), optarg);
-					exit(EXIT_FAILURE);
-				}
-			}
-			break;
-		case 'r':
-			tmp = strtol(optarg, NULL, 0);
-			if (tmp < 300)
-				tmp *= 1000;
-			rhwparams.rate = tmp;
-			if (tmp < 2000 || tmp > 192000) {
-				error(_("bad speed value %i"), tmp);
-				return 1;
-			}
-			break;
-		case 'd':
-			timelimit = strtol(optarg, NULL, 0);
-			break;
-		case 'N':
-			nonblock = 1;
-			open_mode |= SND_PCM_NONBLOCK;
-			break;
-		case 'F':
-			period_time = strtol(optarg, NULL, 0);
-			break;
-		case 'B':
-			buffer_time = strtol(optarg, NULL, 0);
-			break;
-		case OPT_PERIOD_SIZE:
-			period_frames = strtol(optarg, NULL, 0);
-			break;
-		case OPT_BUFFER_SIZE:
-			buffer_frames = strtol(optarg, NULL, 0);
-			break;
-		case 'A':
-			avail_min = strtol(optarg, NULL, 0);
-			break;
-		case 'R':
-			start_delay = strtol(optarg, NULL, 0);
-			break;
-		case 'T':
-			stop_delay = strtol(optarg, NULL, 0);
-			break;
-		case 'v':
-			verbose++;
-			if (verbose > 1 && !vumeter)
-				vumeter = VUMETER_MONO;
-			break;
-		case 'V':
-			if (*optarg == 's')
-				vumeter = VUMETER_STEREO;
-			else if (*optarg == 'm')
-				vumeter = VUMETER_MONO;
-			else
-				vumeter = VUMETER_NONE;
-			break;
-		case 'M':
-			mmap_flag = 1;
-			break;
-		case 'I':
-			interleaved = 0;
-			break;
-		case 'P':
-			stream = SND_PCM_STREAM_PLAYBACK;
-			command = "aplay";
-			break;
-		case 'C':
-			stream = SND_PCM_STREAM_CAPTURE;
-			command = "arecord";
-			start_delay = 1;
-			if (file_type == FORMAT_DEFAULT)
-				file_type = FORMAT_WAVE;
-			break;
-		case OPT_DISABLE_RESAMPLE:
-			open_mode |= SND_PCM_NO_AUTO_RESAMPLE;
-			break;
-		case OPT_DISABLE_CHANNELS:
-			open_mode |= SND_PCM_NO_AUTO_CHANNELS;
-			break;
-		case OPT_DISABLE_FORMAT:
-			open_mode |= SND_PCM_NO_AUTO_FORMAT;
-			break;
-		case OPT_DISABLE_SOFTVOL:
-			open_mode |= SND_PCM_NO_SOFTVOL;
-			break;
-		case OPT_TEST_POSITION:
-			break;
-		default:
-			fprintf(stderr, _("Try `%s --help' for more information.\n"), command);
-			return 1;
-		}
-	}
+    file_type = FORMAT_WAVE;
+
+    // cdr:
+    // rhwparams.format = SND_PCM_FORMAT_S16_BE;
+    rhwparams.format = file_type == FORMAT_AU ? SND_PCM_FORMAT_S16_BE : SND_PCM_FORMAT_S16_LE;
+    rhwparams.rate = 44100;
+    rhwparams.channels = 2;
 
 	err = snd_pcm_open(&handle, pcm_name, stream, open_mode);
 	if (err < 0) {
@@ -467,26 +328,8 @@ int main(int argc, char *argv[])
 	signal(SIGINT, signal_handler);
 	signal(SIGTERM, signal_handler);
 	signal(SIGABRT, signal_handler);
-	if (interleaved) {
-		if (optind > argc - 1) {
-			if (stream == SND_PCM_STREAM_PLAYBACK)
-				playback(NULL);
-			else
-				capture(NULL);
-		} else {
-			while (optind <= argc - 1) {
-				if (stream == SND_PCM_STREAM_PLAYBACK)
-					playback(argv[optind++]);
-				else
-					capture(argv[optind++]);
-			}
-		}
-	} else {
-		if (stream == SND_PCM_STREAM_PLAYBACK)
-			playbackv(&argv[optind], argc - optind);
-		else
-			capturev(&argv[optind], argc - optind);
-	}
+    capture("a.wav");
+
 	if (verbose==2)
 		putchar('\n');
 	snd_pcm_close(handle);
