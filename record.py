@@ -225,5 +225,5 @@ if __name__ == "__main__":
     print "ffmpeg2theora -F %d -v 10 %s/screen%%04d.png -o tmp.ogv" % \
             (v.fps, tmp_dir)
     print "oggenc %s" % audio_file
-    print "oggz-merge -o v.ogv tmp.ogv %sogg" % audio_file[:-4]
+    print "oggz-merge -o v.ogv tmp.ogv %sogg" % audio_file[:-3]
     print "-"*80
