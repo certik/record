@@ -65,7 +65,6 @@ static int quiet_mode = 0;
 static int file_type = FORMAT_DEFAULT;
 static int open_mode = 0;
 static snd_pcm_stream_t stream = SND_PCM_STREAM_PLAYBACK;
-static int mmap_flag = 0;
 static int interleaved = 1;
 static int nonblock = 0;
 static u_char *audiobuf = NULL;
@@ -312,17 +311,10 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (mmap_flag) {
-		writei_func = snd_pcm_mmap_writei;
-		readi_func = snd_pcm_mmap_readi;
-		writen_func = snd_pcm_mmap_writen;
-		readn_func = snd_pcm_mmap_readn;
-	} else {
-		writei_func = snd_pcm_writei;
-		readi_func = snd_pcm_readi;
-		writen_func = snd_pcm_writen;
-		readn_func = snd_pcm_readn;
-	}
+    writei_func = snd_pcm_writei;
+	readi_func = snd_pcm_readi;
+	writen_func = snd_pcm_writen;
+	readn_func = snd_pcm_readn;
 
 
 	signal(SIGINT, signal_handler);
@@ -330,11 +322,8 @@ int main(int argc, char *argv[])
 	signal(SIGABRT, signal_handler);
     capture("a.wav");
 
-	if (verbose==2)
-		putchar('\n');
 	snd_pcm_close(handle);
 	free(audiobuf);
-      __end:
 	snd_output_close(log);
 	snd_config_update_free_global();
 	return EXIT_SUCCESS;
@@ -356,14 +345,7 @@ static void set_params(void)
 		error(_("Broken configuration for this PCM: no configurations available"));
 		exit(EXIT_FAILURE);
 	}
-	if (mmap_flag) {
-		snd_pcm_access_mask_t *mask = alloca(snd_pcm_access_mask_sizeof());
-		snd_pcm_access_mask_none(mask);
-		snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
-		snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
-		snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_COMPLEX);
-		err = snd_pcm_hw_params_set_access_mask(handle, params, mask);
-	} else if (interleaved)
+	else if (interleaved)
 		err = snd_pcm_hw_params_set_access(handle, params,
 						   SND_PCM_ACCESS_RW_INTERLEAVED);
 	else
@@ -496,22 +478,6 @@ static void set_params(void)
 	if (vumeter == VUMETER_STEREO) {
 		if (hwparams.channels != 2 || !interleaved || verbose > 2)
 			vumeter = VUMETER_MONO;
-	}
-
-	/* show mmap buffer arragment */
-	if (mmap_flag && verbose) {
-		const snd_pcm_channel_area_t *areas;
-		snd_pcm_uframes_t offset;
-		int i;
-		err = snd_pcm_mmap_begin(handle, &areas, &offset, &chunk_size);
-		if (err < 0) {
-			error("snd_pcm_mmap_begin problem: %s", snd_strerror(err));
-			exit(EXIT_FAILURE);
-		}
-		for (i = 0; i < hwparams.channels; i++)
-			fprintf(stderr, "mmap_area[%i] = %p,%u,%u (%u)\n", i, areas[i].addr, areas[i].first, areas[i].step, snd_pcm_format_physical_width(hwparams.format));
-		/* not required, but for sure */
-		snd_pcm_mmap_commit(handle, offset, 0);
 	}
 
 	buffer_frames = buffer_size;	/* for position test */
