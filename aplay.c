@@ -19,25 +19,9 @@
 #include <sys/signal.h>
 #include <asm/byteorder.h>
 
-#define DATADIR "/usr/share/alsa"
-#define ENABLE_NLS 1
-#define HAVE_DCGETTEXT 1
-#define HAVE_GETTEXT 1
-#define HAVE_LIBASOUND 1
-#define PACKAGE "alsa-utils"
-#define PACKAGE_BUGREPORT ""
-#define PACKAGE_NAME ""
-#define PACKAGE_STRING ""
-#define PACKAGE_TARNAME ""
-#define PACKAGE_VERSION ""
-#define SOUNDSDIR "/usr/share/sounds/alsa"
-#define STDC_HEADERS 1
-#define TIME_WITH_SYS_TIME 1
-#define VERSION "1.0.18"
+#include <libintl.h>
 
 #include "formats.h"
-
-#include <libintl.h>
 
 #define _(msgid) gettext (msgid)
 #define gettext_noop(msgid) msgid
@@ -386,11 +370,6 @@ int main(int argc, char *argv[])
 	int tmp, err, c;
 	int do_device_list = 0, do_pcm_list = 0;
 	snd_pcm_info_t *info;
-
-#ifdef ENABLE_NLS
-	setlocale(LC_ALL, "");
-	textdomain(PACKAGE);
-#endif
 
 	snd_pcm_info_alloca(&info);
 
