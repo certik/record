@@ -47,9 +47,14 @@
 #include <sys/signal.h>
 #include <asm/byteorder.h>
 #include "aconfig.h"
-#include "gettext.h"
 #include "formats.h"
 #include "version.h"
+
+#include <libintl.h>
+
+#define _(msgid) gettext (msgid)
+#define gettext_noop(msgid) msgid
+#define N_(msgid) gettext_noop (msgid)
 
 #ifndef LLONG_MAX
 #define LLONG_MAX    9223372036854775807LL
