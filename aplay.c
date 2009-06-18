@@ -64,7 +64,8 @@
 #define VERSION "1.0.18"
 
 #include "formats.h"
-#include "version.h"
+
+#define SND_UTIL_VERSION_STR	"1.0.18"
 
 #include <libintl.h>
 
