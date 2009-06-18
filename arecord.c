@@ -116,6 +116,7 @@ static int timelimit = 0;
 static int quiet_mode = 0;
 static int file_type = FORMAT_DEFAULT;
 static int open_mode = 0;
+static int capture_stop = 0;
 static snd_pcm_stream_t stream = SND_PCM_STREAM_PLAYBACK;
 static int interleaved = 1;
 static int nonblock = 0;
@@ -217,8 +218,14 @@ int main()
     return 0;
 }
 
+void stop()
+{
+    capture_stop = 1;
+}
+
 int run(char *filename)
 {
+    capture_stop = 0;
 	char *pcm_name = "default";
 	int tmp, err;
 	snd_pcm_info_t *info;
@@ -286,10 +293,23 @@ int run(char *filename)
 	signal(SIGABRT, signal_handler);
     capture(filename);
 
-	snd_pcm_close(handle);
-	free(audiobuf);
-	snd_output_close(log);
-	snd_config_update_free_global();
+    if (fmt_rec_table[file_type].end) {
+        fmt_rec_table[file_type].end(fd);
+        fd = -1;
+    }
+	stream = -1;
+	if (fd > 1) {
+		close(fd);
+		fd = -1;
+	}
+	if (handle) {
+		snd_pcm_close(handle);
+		handle = NULL;
+	}
+	//snd_pcm_close(handle);
+	//free(audiobuf);
+	//snd_output_close(log);
+	//snd_config_update_free_global();
 	return EXIT_SUCCESS;
 }
 
@@ -992,7 +1012,7 @@ static void capture(char *orig_name)
 
 		/* capture */
 		fdcount = 0;
-		while (rest > 0) {
+		while (rest > 0 && capture_stop == 0) {
 			size_t c = (rest <= (off64_t)chunk_bytes) ?
 				(size_t)rest : chunk_bytes;
 			size_t f = c * 8 / bits_per_frame;
@@ -1016,5 +1036,6 @@ static void capture(char *orig_name)
 		/* repeat the loop when format is raw without timelimit or
 		 * requested counts of data are recorded
 		 */
-	} while ((file_type == FORMAT_RAW && !timelimit) || count > 0);
+	} while ( ((file_type == FORMAT_RAW && !timelimit) || count > 0) &&
+        capture_stop == 0);
 }
