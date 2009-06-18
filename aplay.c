@@ -65,7 +65,6 @@ static int quiet_mode = 0;
 static int file_type = FORMAT_DEFAULT;
 static int open_mode = 0;
 static snd_pcm_stream_t stream = SND_PCM_STREAM_PLAYBACK;
-static int mmap_flag = 0;
 static int interleaved = 1;
 static int nonblock = 0;
 static u_char *audiobuf = NULL;
@@ -90,17 +89,10 @@ static int vocmajor, vocminor;
 
 /* needed prototypes */
 
-static void playback(char *filename);
 static void capture(char *filename);
-static void playbackv(char **filenames, unsigned int count);
-static void capturev(char **filenames, unsigned int count);
 
-static void begin_voc(int fd, size_t count);
-static void end_voc(int fd);
 static void begin_wave(int fd, size_t count);
 static void end_wave(int fd);
-static void begin_au(int fd, size_t count);
-static void end_au(int fd);
 
 struct fmt_capture {
 	void (*start) (int fd, size_t count);
@@ -109,10 +101,9 @@ struct fmt_capture {
 	long long max_filesize;
 } fmt_rec_table[] = {
 	{	NULL,		NULL,		N_("raw data"),		LLONG_MAX },
-	{	begin_voc,	end_voc,	N_("VOC"),		16000000LL },
-	/* FIXME: can WAV handle exactly 2GB or less than it? */
+	{	NULL,	NULL,	N_("VOC"),		16000000LL },
 	{	begin_wave,	end_wave,	N_("WAVE"),		2147483648LL },
-	{	begin_au,	end_au,		N_("Sparc Audio"),	LLONG_MAX }
+	{	NULL,	NULL,		N_("Sparc Audio"),	LLONG_MAX }
 };
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
@@ -128,55 +119,6 @@ struct fmt_capture {
 	putc('\n', stderr); \
 } while (0)
 #endif
-
-static void usage(char *command)
-{
-	snd_pcm_format_t k;
-	printf(
-_("Usage: %s [OPTION]... [FILE]...\n"
-"\n"
-"-h, --help              help\n"
-"    --version           print current version\n"
-"-l, --list-devices      list all soundcards and digital audio devices\n"
-"-L, --list-pcms         list device names\n"
-"-D, --device=NAME       select PCM by name\n"
-"-q, --quiet             quiet mode\n"
-"-t, --file-type TYPE    file type (voc, wav, raw or au)\n"
-"-c, --channels=#        channels\n"
-"-f, --format=FORMAT     sample format (case insensitive)\n"
-"-r, --rate=#            sample rate\n"
-"-d, --duration=#        interrupt after # seconds\n"
-"-M, --mmap              mmap stream\n"
-"-N, --nonblock          nonblocking mode\n"
-"-F, --period-time=#     distance between interrupts is # microseconds\n"
-"-B, --buffer-time=#     buffer duration is # microseconds\n"
-"    --period-size=#     distance between interrupts is # frames\n"
-"    --buffer-size=#     buffer duration is # frames\n"
-"-A, --avail-min=#       min available space for wakeup is # microseconds\n"
-"-R, --start-delay=#     delay for automatic PCM start is # microseconds \n"
-"                        (relative to buffer size if <= 0)\n"
-"-T, --stop-delay=#      delay for automatic PCM stop is # microseconds from xrun\n"
-"-v, --verbose           show PCM structure and setup (accumulative)\n"
-"-V, --vumeter=TYPE      enable VU meter (TYPE: mono or stereo)\n"
-"-I, --separate-channels one file for each channel\n"
-"    --disable-resample  disable automatic rate resample\n"
-"    --disable-channels  disable automatic channel conversions\n"
-"    --disable-format    disable automatic format conversions\n"
-"    --disable-softvol   disable software volume control (softvol)\n"
-"    --test-position     test ring buffer position\n")
-		, command);
-	printf(_("Recognized sample formats are:"));
-	for (k = 0; k < SND_PCM_FORMAT_LAST; ++k) {
-		const char *s = snd_pcm_format_name(k);
-		if (s)
-			printf(" %s", s);
-	}
-	printf(_("\nSome of these may not be available on selected hardware\n"));
-	printf(_("The availabled format shortcuts are:\n"));
-	printf(_("-f cd (16 bit little endian, 44100, stereo)\n"));
-	printf(_("-f cdr (16 bit big endian, 44100, stereo)\n"));
-	printf(_("-f dat (16 bit little endian, 48000, stereo)\n"));
-}
 
 static void version(void)
 {
@@ -217,46 +159,10 @@ enum {
 	OPT_TEST_POSITION
 };
 
-int main(int argc, char *argv[])
+int main()
 {
-	int option_index;
-	char *short_options = "hnlLD:qt:c:f:r:d:MNF:A:R:T:B:vV:IPC";
-	static struct option long_options[] = {
-		{"help", 0, 0, 'h'},
-		{"version", 0, 0, OPT_VERSION},
-		{"list-devnames", 0, 0, 'n'},
-		{"list-devices", 0, 0, 'l'},
-		{"list-pcms", 0, 0, 'L'},
-		{"device", 1, 0, 'D'},
-		{"quiet", 0, 0, 'q'},
-		{"file-type", 1, 0, 't'},
-		{"channels", 1, 0, 'c'},
-		{"format", 1, 0, 'f'},
-		{"rate", 1, 0, 'r'},
-		{"duration", 1, 0 ,'d'},
-		{"mmap", 0, 0, 'M'},
-		{"nonblock", 0, 0, 'N'},
-		{"period-time", 1, 0, 'F'},
-		{"period-size", 1, 0, OPT_PERIOD_SIZE},
-		{"avail-min", 1, 0, 'A'},
-		{"start-delay", 1, 0, 'R'},
-		{"stop-delay", 1, 0, 'T'},
-		{"buffer-time", 1, 0, 'B'},
-		{"buffer-size", 1, 0, OPT_BUFFER_SIZE},
-		{"verbose", 0, 0, 'v'},
-		{"vumeter", 1, 0, 'V'},
-		{"separate-channels", 0, 0, 'I'},
-		{"playback", 0, 0, 'P'},
-		{"capture", 0, 0, 'C'},
-		{"disable-resample", 0, 0, OPT_DISABLE_RESAMPLE},
-		{"disable-channels", 0, 0, OPT_DISABLE_CHANNELS},
-		{"disable-format", 0, 0, OPT_DISABLE_FORMAT},
-		{"disable-softvol", 0, 0, OPT_DISABLE_SOFTVOL},
-		{"test-position", 0, 0, OPT_TEST_POSITION},
-		{0, 0, 0, 0}
-	};
 	char *pcm_name = "default";
-	int tmp, err, c;
+	int tmp, err;
 	snd_pcm_info_t *info;
 
 	snd_pcm_info_alloca(&info);
@@ -264,7 +170,6 @@ int main(int argc, char *argv[])
 	err = snd_output_stdio_attach(&log, stderr, 0);
 	assert(err >= 0);
 
-	command = argv[0];
 	file_type = FORMAT_DEFAULT;
     stream = SND_PCM_STREAM_CAPTURE;
     file_type = FORMAT_WAVE;
@@ -312,17 +217,10 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (mmap_flag) {
-		writei_func = snd_pcm_mmap_writei;
-		readi_func = snd_pcm_mmap_readi;
-		writen_func = snd_pcm_mmap_writen;
-		readn_func = snd_pcm_mmap_readn;
-	} else {
-		writei_func = snd_pcm_writei;
-		readi_func = snd_pcm_readi;
-		writen_func = snd_pcm_writen;
-		readn_func = snd_pcm_readn;
-	}
+    writei_func = snd_pcm_writei;
+	readi_func = snd_pcm_readi;
+	writen_func = snd_pcm_writen;
+	readn_func = snd_pcm_readn;
 
 
 	signal(SIGINT, signal_handler);
@@ -330,11 +228,8 @@ int main(int argc, char *argv[])
 	signal(SIGABRT, signal_handler);
     capture("a.wav");
 
-	if (verbose==2)
-		putchar('\n');
 	snd_pcm_close(handle);
 	free(audiobuf);
-      __end:
 	snd_output_close(log);
 	snd_config_update_free_global();
 	return EXIT_SUCCESS;
@@ -356,14 +251,7 @@ static void set_params(void)
 		error(_("Broken configuration for this PCM: no configurations available"));
 		exit(EXIT_FAILURE);
 	}
-	if (mmap_flag) {
-		snd_pcm_access_mask_t *mask = alloca(snd_pcm_access_mask_sizeof());
-		snd_pcm_access_mask_none(mask);
-		snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_INTERLEAVED);
-		snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
-		snd_pcm_access_mask_set(mask, SND_PCM_ACCESS_MMAP_COMPLEX);
-		err = snd_pcm_hw_params_set_access_mask(handle, params, mask);
-	} else if (interleaved)
+	else if (interleaved)
 		err = snd_pcm_hw_params_set_access(handle, params,
 						   SND_PCM_ACCESS_RW_INTERLEAVED);
 	else
@@ -496,22 +384,6 @@ static void set_params(void)
 	if (vumeter == VUMETER_STEREO) {
 		if (hwparams.channels != 2 || !interleaved || verbose > 2)
 			vumeter = VUMETER_MONO;
-	}
-
-	/* show mmap buffer arragment */
-	if (mmap_flag && verbose) {
-		const snd_pcm_channel_area_t *areas;
-		snd_pcm_uframes_t offset;
-		int i;
-		err = snd_pcm_mmap_begin(handle, &areas, &offset, &chunk_size);
-		if (err < 0) {
-			error("snd_pcm_mmap_begin problem: %s", snd_strerror(err));
-			exit(EXIT_FAILURE);
-		}
-		for (i = 0; i < hwparams.channels; i++)
-			fprintf(stderr, "mmap_area[%i] = %p,%u,%u (%u)\n", i, areas[i].addr, areas[i].first, areas[i].step, snd_pcm_format_physical_width(hwparams.format));
-		/* not required, but for sure */
-		snd_pcm_mmap_commit(handle, offset, 0);
 	}
 
 	buffer_frames = buffer_size;	/* for position test */
@@ -868,11 +740,6 @@ static off64_t calc_count(void)
 	return count < pbrec_count ? count : pbrec_count;
 }
 
-/* write a .VOC-header */
-static void begin_voc(int fd, size_t cnt)
-{
-}
-
 /* write a WAVE-header */
 static void begin_wave(int fd, size_t cnt)
 {
@@ -945,16 +812,6 @@ static void begin_wave(int fd, size_t cnt)
 	}
 }
 
-/* write a Au-header */
-static void begin_au(int fd, size_t cnt)
-{
-}
-
-/* closing .VOC */
-static void end_voc(int fd)
-{
-}
-
 static void end_wave(int fd)
 {				/* only close output */
 	WaveChunkHeader cd;
@@ -977,10 +834,6 @@ static void end_wave(int fd)
 		close(fd);
 }
 
-static void end_au(int fd)
-{				/* only close output */
-}
-
 static void header(int rtype, char *name)
 {
 	if (!quiet_mode) {
@@ -1000,21 +853,6 @@ static void header(int rtype, char *name)
 			fprintf(stderr, _("Channels %i"), hwparams.channels);
 		fprintf(stderr, "\n");
 	}
-}
-
-/* playing raw data */
-
-void playback_go(int fd, size_t loaded, off64_t count, int rtype, char *name)
-{
-}
-
-
-/*
- *  let's play or capture it (capture_type says VOC/WAVE/raw)
- */
-
-static void playback(char *name)
-{
 }
 
 static int new_capture_file(char *name, char *namebuf, size_t namelen,
@@ -1144,20 +982,4 @@ static void capture(char *orig_name)
 		 * requested counts of data are recorded
 		 */
 	} while ((file_type == FORMAT_RAW && !timelimit) || count > 0);
-}
-
-void playbackv_go(int* fds, unsigned int channels, size_t loaded, off64_t count, int rtype, char **names)
-{
-}
-
-void capturev_go(int* fds, unsigned int channels, off64_t count, int rtype, char **names)
-{
-}
-
-static void playbackv(char **names, unsigned int count)
-{
-}
-
-static void capturev(char **names, unsigned int count)
-{
 }
