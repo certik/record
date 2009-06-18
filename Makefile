@@ -1,3 +1,3 @@
 all:
-	gcc -c -o aplay.o aplay.c
-	gcc -o arecord aplay.o -lasound
+	gcc -c -o arecord.o arecord.c
+	gcc -o arecord arecord.o -lasound
