@@ -2209,57 +2209,6 @@ void playback_go(int fd, size_t loaded, off64_t count, int rtype, char *name)
 
 static void playback(char *name)
 {
-	int ofs;
-	size_t dta;
-	ssize_t dtawave;
-
-	pbrec_count = LLONG_MAX;
-	fdcount = 0;
-	if (!name || !strcmp(name, "-")) {
-		fd = fileno(stdin);
-		name = "stdin";
-	} else {
-		if ((fd = open64(name, O_RDONLY, 0)) == -1) {
-			perror(name);
-			exit(EXIT_FAILURE);
-		}
-	}
-	/* read the file header */
-	dta = sizeof(AuHeader);
-	if ((size_t)safe_read(fd, audiobuf, dta) != dta) {
-		error(_("read error"));
-		exit(EXIT_FAILURE);
-	}
-	if (test_au(fd, audiobuf) >= 0) {
-		rhwparams.format = hwparams.format;
-		pbrec_count = calc_count();
-		playback_go(fd, 0, pbrec_count, FORMAT_AU, name);
-		goto __end;
-	}
-	dta = sizeof(VocHeader);
-	if ((size_t)safe_read(fd, audiobuf + sizeof(AuHeader),
-		 dta - sizeof(AuHeader)) != dta - sizeof(AuHeader)) {
-		error(_("read error"));
-		exit(EXIT_FAILURE);
-	}
-	if ((ofs = test_vocfile(audiobuf)) >= 0) {
-		pbrec_count = calc_count();
-		voc_play(fd, ofs, name);
-		goto __end;
-	}
-	/* read bytes for WAVE-header */
-	if ((dtawave = test_wavefile(fd, audiobuf, dta)) >= 0) {
-		pbrec_count = calc_count();
-		playback_go(fd, dtawave, pbrec_count, FORMAT_WAVE, name);
-	} else {
-		/* should be raw data */
-		init_raw_data();
-		pbrec_count = calc_count();
-		playback_go(fd, dta, pbrec_count, FORMAT_RAW, name);
-	}
-      __end:
-	if (fd != 0)
-		close(fd);
 }
 
 static int new_capture_file(char *name, char *namebuf, size_t namelen,
@@ -2344,7 +2293,7 @@ static void capture(char *orig_name)
 							     filecount);
 				name = namebuf;
 			}
-			
+
 			/* open a new file */
 			remove(name);
 			if ((fd = open64(name, O_WRONLY | O_CREAT, 0644)) == -1) {
@@ -2393,195 +2342,16 @@ static void capture(char *orig_name)
 
 void playbackv_go(int* fds, unsigned int channels, size_t loaded, off64_t count, int rtype, char **names)
 {
-	int r;
-	size_t vsize;
-
-	unsigned int channel;
-	u_char *bufs[channels];
-
-	header(rtype, names[0]);
-	set_params();
-
-	vsize = chunk_bytes / channels;
-
-	// Not yet implemented
-	assert(loaded == 0);
-
-	for (channel = 0; channel < channels; ++channel)
-		bufs[channel] = audiobuf + vsize * channel;
-
-	while (count > 0) {
-		size_t c = 0;
-		size_t expected = count / channels;
-		if (expected > vsize)
-			expected = vsize;
-		do {
-			r = safe_read(fds[0], bufs[0], expected);
-			if (r < 0) {
-				perror(names[channel]);
-				exit(EXIT_FAILURE);
-			}
-			for (channel = 1; channel < channels; ++channel) {
-				if (safe_read(fds[channel], bufs[channel], r) != r) {
-					perror(names[channel]);
-					exit(EXIT_FAILURE);
-				}
-			}
-			if (r == 0)
-				break;
-			c += r;
-		} while (c < expected);
-		c = c * 8 / bits_per_sample;
-		r = pcm_writev(bufs, channels, c);
-		if ((size_t)r != c)
-			break;
-		r = r * bits_per_frame / 8;
-		count -= r;
-	}
-	snd_pcm_nonblock(handle, 0);
-	snd_pcm_drain(handle);
-	snd_pcm_nonblock(handle, nonblock);
 }
 
 void capturev_go(int* fds, unsigned int channels, off64_t count, int rtype, char **names)
 {
-	size_t c;
-	ssize_t r;
-	unsigned int channel;
-	size_t vsize;
-	u_char *bufs[channels];
-
-	header(rtype, names[0]);
-	set_params();
-
-	vsize = chunk_bytes / channels;
-
-	for (channel = 0; channel < channels; ++channel)
-		bufs[channel] = audiobuf + vsize * channel;
-
-	while (count > 0) {
-		size_t rv;
-		c = count;
-		if (c > chunk_bytes)
-			c = chunk_bytes;
-		c = c * 8 / bits_per_frame;
-		if ((size_t)(r = pcm_readv(bufs, channels, c)) != c)
-			break;
-		rv = r * bits_per_sample / 8;
-		for (channel = 0; channel < channels; ++channel) {
-			if ((size_t)write(fds[channel], bufs[channel], rv) != rv) {
-				perror(names[channel]);
-				exit(EXIT_FAILURE);
-			}
-		}
-		r = r * bits_per_frame / 8;
-		count -= r;
-		fdcount += r;
-	}
 }
 
 static void playbackv(char **names, unsigned int count)
 {
-	int ret = 0;
-	unsigned int channel;
-	unsigned int channels = rhwparams.channels;
-	int alloced = 0;
-	int fds[channels];
-	for (channel = 0; channel < channels; ++channel)
-		fds[channel] = -1;
-
-	if (count == 1 && channels > 1) {
-		size_t len = strlen(names[0]);
-		char format[1024];
-		memcpy(format, names[0], len);
-		strcpy(format + len, ".%d");
-		len += 4;
-		names = malloc(sizeof(*names) * channels);
-		for (channel = 0; channel < channels; ++channel) {
-			names[channel] = malloc(len);
-			sprintf(names[channel], format, channel);
-		}
-		alloced = 1;
-	} else if (count != channels) {
-		error(_("You need to specify %d files"), channels);
-		exit(EXIT_FAILURE);
-	}
-
-	for (channel = 0; channel < channels; ++channel) {
-		fds[channel] = open(names[channel], O_RDONLY, 0);
-		if (fds[channel] < 0) {
-			perror(names[channel]);
-			ret = EXIT_FAILURE;
-			goto __end;
-		}
-	}
-	/* should be raw data */
-	init_raw_data();
-	pbrec_count = calc_count();
-	playbackv_go(fds, channels, 0, pbrec_count, FORMAT_RAW, names);
-
-      __end:
-	for (channel = 0; channel < channels; ++channel) {
-		if (fds[channel] >= 0)
-			close(fds[channel]);
-		if (alloced)
-			free(names[channel]);
-	}
-	if (alloced)
-		free(names);
-	if (ret)
-		exit(ret);
 }
 
 static void capturev(char **names, unsigned int count)
 {
-	int ret = 0;
-	unsigned int channel;
-	unsigned int channels = rhwparams.channels;
-	int alloced = 0;
-	int fds[channels];
-	for (channel = 0; channel < channels; ++channel)
-		fds[channel] = -1;
-
-	if (count == 1) {
-		size_t len = strlen(names[0]);
-		char format[1024];
-		memcpy(format, names[0], len);
-		strcpy(format + len, ".%d");
-		len += 4;
-		names = malloc(sizeof(*names) * channels);
-		for (channel = 0; channel < channels; ++channel) {
-			names[channel] = malloc(len);
-			sprintf(names[channel], format, channel);
-		}
-		alloced = 1;
-	} else if (count != channels) {
-		error(_("You need to specify %d files"), channels);
-		exit(EXIT_FAILURE);
-	}
-
-	for (channel = 0; channel < channels; ++channel) {
-		fds[channel] = open(names[channel], O_WRONLY + O_CREAT, 0644);
-		if (fds[channel] < 0) {
-			perror(names[channel]);
-			ret = EXIT_FAILURE;
-			goto __end;
-		}
-	}
-	/* should be raw data */
-	init_raw_data();
-	pbrec_count = calc_count();
-	capturev_go(fds, channels, pbrec_count, FORMAT_RAW, names);
-
-      __end:
-	for (channel = 0; channel < channels; ++channel) {
-		if (fds[channel] >= 0)
-			close(fds[channel]);
-		if (alloced)
-			free(names[channel]);
-	}
-	if (alloced)
-		free(names);
-	if (ret)
-		exit(ret);
 }
