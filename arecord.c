@@ -886,27 +886,6 @@ static void end_wave(int fd)
 		close(fd);
 }
 
-static void header(int rtype, char *name)
-{
-	if (!quiet_mode) {
-		if (! name)
-			name = (stream == SND_PCM_STREAM_PLAYBACK) ? "stdout" : "stdin";
-		fprintf(stderr, "%s %s '%s' : ",
-			(stream == SND_PCM_STREAM_PLAYBACK) ? _("Playing") : _("Recording"),
-			gettext(fmt_rec_table[rtype].what),
-			name);
-		fprintf(stderr, "%s, ", snd_pcm_format_description(hwparams.format));
-		fprintf(stderr, _("Rate %d Hz, "), hwparams.rate);
-		if (hwparams.channels == 1)
-			fprintf(stderr, _("Mono"));
-		else if (hwparams.channels == 2)
-			fprintf(stderr, _("Stereo"));
-		else
-			fprintf(stderr, _("Channels %i"), hwparams.channels);
-		fprintf(stderr, "\n");
-	}
-}
-
 static int new_capture_file(char *name, char *namebuf, size_t namelen,
 			    int filecount)
 {
@@ -964,9 +943,7 @@ static void capture(char *orig_name)
 	else
 		count -= count % 2;
 
-	/* display verbose output to console */
-	header(file_type, name);
-
+    printf("Recording to: %s\n", name);
 	/* setup sound hardware */
 	set_params();
 
