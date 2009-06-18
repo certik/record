@@ -89,15 +89,10 @@ static int vocmajor, vocminor;
 
 /* needed prototypes */
 
-static void playback(char *filename);
 static void capture(char *filename);
 
-static void begin_voc(int fd, size_t count);
-static void end_voc(int fd);
 static void begin_wave(int fd, size_t count);
 static void end_wave(int fd);
-static void begin_au(int fd, size_t count);
-static void end_au(int fd);
 
 struct fmt_capture {
 	void (*start) (int fd, size_t count);
@@ -106,10 +101,9 @@ struct fmt_capture {
 	long long max_filesize;
 } fmt_rec_table[] = {
 	{	NULL,		NULL,		N_("raw data"),		LLONG_MAX },
-	{	begin_voc,	end_voc,	N_("VOC"),		16000000LL },
-	/* FIXME: can WAV handle exactly 2GB or less than it? */
+	{	NULL,	NULL,	N_("VOC"),		16000000LL },
 	{	begin_wave,	end_wave,	N_("WAVE"),		2147483648LL },
-	{	begin_au,	end_au,		N_("Sparc Audio"),	LLONG_MAX }
+	{	NULL,	NULL,		N_("Sparc Audio"),	LLONG_MAX }
 };
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 95)
@@ -747,11 +741,6 @@ static off64_t calc_count(void)
 	return count < pbrec_count ? count : pbrec_count;
 }
 
-/* write a .VOC-header */
-static void begin_voc(int fd, size_t cnt)
-{
-}
-
 /* write a WAVE-header */
 static void begin_wave(int fd, size_t cnt)
 {
@@ -824,16 +813,6 @@ static void begin_wave(int fd, size_t cnt)
 	}
 }
 
-/* write a Au-header */
-static void begin_au(int fd, size_t cnt)
-{
-}
-
-/* closing .VOC */
-static void end_voc(int fd)
-{
-}
-
 static void end_wave(int fd)
 {				/* only close output */
 	WaveChunkHeader cd;
@@ -856,10 +835,6 @@ static void end_wave(int fd)
 		close(fd);
 }
 
-static void end_au(int fd)
-{				/* only close output */
-}
-
 static void header(int rtype, char *name)
 {
 	if (!quiet_mode) {
@@ -879,21 +854,6 @@ static void header(int rtype, char *name)
 			fprintf(stderr, _("Channels %i"), hwparams.channels);
 		fprintf(stderr, "\n");
 	}
-}
-
-/* playing raw data */
-
-void playback_go(int fd, size_t loaded, off64_t count, int rtype, char *name)
-{
-}
-
-
-/*
- *  let's play or capture it (capture_type says VOC/WAVE/raw)
- */
-
-static void playback(char *name)
-{
 }
 
 static int new_capture_file(char *name, char *namebuf, size_t namelen,
