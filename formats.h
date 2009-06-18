@@ -4,44 +4,6 @@
 #include <endian.h>
 #include <byteswap.h>
 
-/* Definitions for .VOC files */
-
-#define VOC_MAGIC_STRING	"Creative Voice File\x1A"
-#define VOC_ACTUAL_VERSION	0x010A
-#define VOC_SAMPLESIZE		8
-
-#define VOC_MODE_MONO		0
-#define VOC_MODE_STEREO		1
-
-#define VOC_DATALEN(bp)		((u_long)(bp->datalen) | \
-                         	((u_long)(bp->datalen_m) << 8) | \
-                         	((u_long)(bp->datalen_h) << 16) )
-
-typedef struct voc_header {
-	u_char magic[20];	/* must be MAGIC_STRING */
-	u_short headerlen;	/* Headerlength, should be 0x1A */
-	u_short version;	/* VOC-file version */
-	u_short coded_ver;	/* 0x1233-version */
-} VocHeader;
-
-typedef struct voc_blocktype {
-	u_char type;
-	u_char datalen;		/* low-byte    */
-	u_char datalen_m;	/* medium-byte */
-	u_char datalen_h;	/* high-byte   */
-} VocBlockType;
-
-typedef struct voc_voice_data {
-	u_char tc;
-	u_char pack;
-} VocVoiceData;
-
-typedef struct voc_ext_block {
-	u_short tc;
-	u_char pack;
-	u_char mode;
-} VocExtBlock;
-
 /* Definitions for Microsoft WAVE format */
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -106,22 +68,5 @@ typedef struct {
 	u_int type;		/* 'data' */
 	u_int length;		/* samplecount */
 } WaveChunkHeader;
-
-/* Definitions for Sparc .au header */
-
-#define AU_MAGIC		COMPOSE_ID('.','s','n','d')
-
-#define AU_FMT_ULAW		1
-#define AU_FMT_LIN8		2
-#define AU_FMT_LIN16		3
-
-typedef struct au_header {
-	u_int magic;		/* '.snd' */
-	u_int hdr_size;		/* size of header (min 24) */
-	u_int data_size;	/* size of data */
-	u_int encoding;		/* see to AU_FMT_XXXX */
-	u_int sample_rate;	/* sample rate */
-	u_int channels;		/* number of channels (voices) */
-} AuHeader;
 
 #endif				/* FORMATS */
