@@ -213,6 +213,12 @@ enum {
 
 int main()
 {
+    run("b.wav");
+    return 0;
+}
+
+int run(char *filename)
+{
 	char *pcm_name = "default";
 	int tmp, err;
 	snd_pcm_info_t *info;
@@ -278,7 +284,7 @@ int main()
 	signal(SIGINT, signal_handler);
 	signal(SIGTERM, signal_handler);
 	signal(SIGABRT, signal_handler);
-    capture("a.wav");
+    capture(filename);
 
 	snd_pcm_close(handle);
 	free(audiobuf);
