@@ -8,7 +8,7 @@ from sys import argv
 import wave
 import audioop
 
-def amplify(filein, fileout, factor=10):
+def amplify(filein, fileout, factor=100):
     a = wave.open(filein)
     params = a.getparams()
     nchannels, sampwidth, framerate, nframes, comptype, compname = params
