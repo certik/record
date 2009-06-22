@@ -227,3 +227,10 @@ if __name__ == "__main__":
     print "oggenc %s" % audio_file
     print "oggz-merge -o v.ogv tmp.ogv %sogg" % audio_file[:-3]
     print "-"*80
+    print
+    print "To just archive audio and video in a lossless format for later processing:"
+    print "-"*80
+    print "advmng -v -a %d video.mng %s/screen*.png" % (v.fps, tmp_dir)
+    print "flac -o audio.flac %s" % audio_file
+    print "-"*80
+    print "(Use 'advmng -x video.mng' to extract the png images)"
