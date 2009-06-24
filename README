@@ -43,6 +43,11 @@ utility to amplify the wav file before converting it to ogg or the
 "normalize-audio" program (better results) from the Debian package of the same
 name (it operates *inplace* on the wav file).
 
+Convert to FLV
+--------------
+
+In order to convert to FLV, so that you can play it with flowplayer (flash
+player in the browser), use the script theora2flv.
 
 License
 -------
