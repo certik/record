@@ -54,3 +54,23 @@ License
 
 The arecord.c file is GPL (see alsa-utils for more info), all the other code is
 BSD. The package as a whole is GPL due to arecord.c.
+
+Flowplayer
+----------
+
+Example of usage:
+
+<a href="level-set.flv"
+    style="display:block;width:500px;height:399px" id="player1"> </a>
+<script src="http://femhub.googlecode.com/svn/trunk/swf/flowplayer-3.1.1.min.js"
+    type="text/javascript"> </script>
+<script type="text/javascript">
+    flowplayer("player1",
+            "http://femhub.googlecode.com/svn/trunk/swf/flowplayer-3.1.1.swf",
+            {
+playlist: [
+{ url: "lset4.png", autoPlay: true},
+{ url: "level-set.flv", autoPlay: false}
+]
+            });
+</script>
