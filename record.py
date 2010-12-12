@@ -196,8 +196,8 @@ if __name__ == "__main__":
     video_file = os.path.join(tmp_dir, "video.ogv")
     audio_file = os.path.join(tmp_dir, "audio.wav")
     print "work dir:", tmp_dir
-    print "select a window to capture (1s sleep)"
-    sleep(1)
+    print "select a window to capture (2s sleep)"
+    sleep(2)
     print "active window selected"
     v = Video(tmp_dir, options.window)
     a = Audio(audio_file)
