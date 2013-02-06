@@ -1,0 +1,59 @@
+*******
+Examples
+
+
+You may want to...
+
+1. Cut up a video.
+
+Using ffmpeg causes loss, but has the most control, I find, so use a lossless format, like ffv1. You might not get it to play in this format.
+
+ex: ffmpeg -i in.ogv -ss 00:00:05 -t 00:05:00 -vcodec ffv1 out.ogv    \\ takes the 1st 5 mins after cutting the first 5 secs
+
+oggz-chop is super-fast, works best for small cuts, it left long pauses in my videos.
+
+
+2. Speed up a video.
+
+Using mencoder, you need the video codec to be lavc if you are using a lossless format like ffv1, otherwise copy works.
+Speeding up too much results in freezing.
+
+ex: mencoder -oac copy -ovc lavc -speed 50 -o out.ogv in.ogv   \\ speed up 50x
+
+
+3. Merge videos together.
+
+Checklist:
+Do these videos have... 
+The same bitrate?
+"" frames per second?
+"" frame size?
+"" number of audio tracks?
+
+Convert them to the same format. (this is high quality)
+ex: ffmpeg -i in.ogv -s 1280x720 -aspect 16:9 -b 6144k -r 25   
+
+If your videos are already the same, use oggz merge, it is faster and there is no loss like ffmpeg.
+
+Merge.
+ex: mencoder -oac copy -ovc copy -o out.ogv in1.ogv in2.ogv ...
+
+
+4. Make youtube compatible.
+
+Use liblame for mp3 audio. Lower quality is flv, higher is mp4.
+
+ex: ffmpeg -i in.ogv -vcodec libx264 -acodec libmp3lame out.flv
+
+
+5. Record audio seperately and merge.
+
+Use ffmpeg with 2 input files.
+
+ffmpeg -i in.ogv -i in.wav out.ogv
+
+Use oggz-merge.
+
+oggz merge -o out.ogv in.ogv in.ogg
+
+
